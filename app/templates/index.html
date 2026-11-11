@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}发起验收 · 报纸扫描验收台{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Issue Scan Acceptance</p>
+  <h1>输入一期扫描目录，逐页核对漏扫与重扫</h1>
+  <p class="hero-copy">
+    系统会沿同站分页读完目录，抓取每个扫描详情，只采用“期版一致且带图片链接”的扫描覆盖页码。
+    同一页被不同扫描覆盖记为重扫冲突；无人覆盖的页列为待补扫。
+  </p>
+</section>
+
+{% if error %}
+<div class="alert alert-error" role="alert">
+  <strong>无法开始验收：</strong>{{ error }}
+</div>
+{% endif %}
+
+<section class="panel">
+  <form class="inspect-form" method="post" action="/inspect">
+    <label for="url">该期目录 URL</label>
+    <div class="input-row">
+      <input id="url" name="url" type="text" value="{{ url }}" required
+             placeholder="{% if demo_enabled %}例如 {{ sample_prefix }}/issues/clean/page/1.html{% else %}例如 https://example.com/issues/2024-05-01/{% endif %}">
+      <button class="primary" type="submit">开始验收</button>
+    </div>
+    {% if demo_enabled %}
+    <p class="field-hint">
+      可粘贴完整 URL；也可以直接使用站内路径（如 <code>{{ sample_prefix }}/issues/clean/page/1.html</code>）。
+    </p>
+    {% else %}
+    <p class="field-hint">请输入可被服务器访问的 http(s) 目录地址。</p>
+    {% endif %}
+  </form>
+</section>
+
+{% if demo_enabled %}
+<section class="demo-section">
+  <div class="section-heading">
+    <h2>断网演示样本</h2>
+    <p>本地样本站提供三个带分页的期，分别覆盖三种验收结果。</p>
+  </div>
+  <div class="demo-grid">
+    {% for item in demo_issues %}
+    <form class="demo-card" method="post" action="/inspect">
+      <input type="hidden" name="url" value="{{ item.url }}">
+      <div class="demo-card-top">
+        <span class="badge badge-{{ {'合格': 'ok', '不合格': 'bad', '待核实': 'pending'}[item.expected] }}">{{ item.expected }}</span>
+        <span class="demo-path">{{ item.url }}</span>
+      </div>
+      <h3>{{ item.title }}</h3>
+      <p>{{ item.description }}</p>
+      <button class="ghost" type="submit">验收这一期</button>
+    </form>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="notice">
+  <strong>演示站点未配置。</strong>
+  使用 Docker Compose 启动时会同时运行网页和本地分页样本站点；也可以直接粘贴任意外部目录 URL。
+</section>
+{% endif %}
+
+<section class="rules">
+  <h2>判定规则</h2>
+  <div class="rule-grid">
+    <article>
+      <span class="rule-icon ok">✓</span>
+      <h3>合格</h3>
+      <p>目录内每一页都恰好被一个有效扫描覆盖，且所有详情均抓取成功。</p>
+    </article>
+    <article>
+      <span class="rule-icon bad">!</span>
+      <h3>不合格</h3>
+      <p>存在待补扫的空缺页，或同一页被不同扫描重复覆盖（重扫冲突）。</p>
+    </article>
+    <article>
+      <span class="rule-icon pending">?</span>
+      <h3>待核实</h3>
+      <p>任一详情或目录分页抓取失败，整期不能判为合格，需人工复核。</p>
+    </article>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}验收结果 · {{ report.issue_no }}{% endblock %}
+
+{% block content %}
+<section class="report-head">
+  <div>
+    <p class="eyebrow">验收结果</p>
+    <h1>{{ report.issue_no }} <span class="edition-chip">{{ report.edition }}</span></h1>
+    <p class="muted">
+      目录：<span class="url-text">{{ report.directory_url }}</span><br>
+      共读取 {{ report.directory_pages|length }} 个目录分页，检查 {{ report.detail_count }} 个扫描详情。
+    </p>
+  </div>
+  <span class="badge badge-{{ report.status_key }} big">{{ report.status }}</span>
+</section>
+
+<div class="alert alert-{{ report.status_key }}">
+  <strong>{{ report.status }}：</strong>{{ report.status_note }}
+  {% if report.failures %}
+  <span class="alert-tail">抓取失败 {{ report.failures|length }} 处，详见下方“抓取失败”。</span>
+  {% endif %}
+</div>
+
+<section class="stats">
+  <div class="stat">
+    <span class="stat-label">总页数</span>
+    <span class="stat-value">{{ report.total_pages }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">已被覆盖</span>
+    <span class="stat-value">{{ report.covered_pages }}</span>
+  </div>
+  <div class="stat stat-bad">
+    <span class="stat-label">重扫冲突</span>
+    <span class="stat-value">{{ report.conflict_pages|length }}</span>
+  </div>
+  <div class="stat stat-missing">
+    <span class="stat-label">待补扫</span>
+    <span class="stat-value">{{ report.missing_pages|length }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">未采用扫描</span>
+    <span class="stat-value">{{ report.ignored_scans|length }}</span>
+  </div>
+  <div class="stat {% if report.failures %}stat-bad{% endif %}">
+    <span class="stat-label">抓取失败</span>
+    <span class="stat-value">{{ report.failures|length }}</span>
+  </div>
+</section>
+
+{% if report.warnings %}
+<section class="notice">
+  <strong>目录提示</strong>
+  <ul>
+    {% for warning in report.warnings %}<li>{{ warning }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="section-heading">
+    <h2>逐页判定与扫描来源</h2>
+    <p>每一页只统计期版一致、带图片链接且页码有效的扫描。</p>
+  </div>
+
+  <div class="page-grid">
+    {% for page in report.pages %}
+    <article class="page-card page-{{ page.status }}">
+      <header class="page-card-head">
+        <span class="page-number">第 {{ page.number }} 页</span>
+        <span class="chip chip-{{ page.status }}">{{ page_status_labels[page.status] }}</span>
+      </header>
+
+      {% if page.sources %}
+        {% if page.status == 'conflict' %}
+        <p class="page-note">本页被 {{ page.sources|length }} 个不同扫描覆盖，需确认保留哪一版。</p>
+        {% endif %}
+        <ul class="source-list">
+          {% for source in page.sources %}
+          <li class="source">
+            <div class="source-line">
+              <span class="scan-code">{{ source.code }}</span>
+              <span class="scan-pages">页码 {{ source.pages_text }}</span>
+            </div>
+            <div class="source-line muted">
+              <span>{{ source.issue }} · {{ source.edition }}</span>
+            </div>
+            <div class="source-actions">
+              <a href="{{ source.detail_url }}" target="_blank" rel="noopener">详情页 ↗</a>
+              <a href="{{ source.image_url }}" target="_blank" rel="noopener">扫描图片 ↗</a>
+            </div>
+            {% if source.notes %}
+            <p class="source-note">{{ source.notes|join('；') }}</p>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">本页没有有效扫描覆盖，列为待补扫。</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% if report.accepted_scans %}
+<section class="section">
+  <div class="section-heading">
+    <h2>已采用扫描</h2>
+    <p>{{ report.accepted_scans|length }} 个详情通过期版与图片校验。</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>编号</th><th>详情页</th><th>所属期版</th><th>页码</th><th>图片</th><th>备注</th></tr>
+      </thead>
+      <tbody>
+      {% for scan in report.accepted_scans %}
+        <tr>
+          <td><span class="scan-code">{{ scan.code }}</span></td>
+          <td><a href="{{ scan.detail_url }}" target="_blank" rel="noopener">查看详情 ↗</a></td>
+          <td>{{ scan.issue }} · {{ scan.edition }}</td>
+          <td>{{ scan.pages_text }}</td>
+          <td><a href="{{ scan.image_url }}" target="_blank" rel="noopener">图片 ↗</a></td>
+          <td class="muted">{{ scan.notes|join('；') if scan.notes else '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if report.ignored_scans %}
+<section class="section">
+  <div class="section-heading">
+    <h2>未采用扫描</h2>
+    <p>期版不一致、缺少图片链接或无法识别页码的详情不会覆盖任何页面。</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>详情页</th><th>详情声明</th><th>页码</th><th>图片</th><th>未采用原因</th></tr>
+      </thead>
+      <tbody>
+      {% for scan in report.ignored_scans %}
+        <tr>
+          <td><a href="{{ scan.detail_url }}" target="_blank" rel="noopener">查看详情 ↗</a></td>
+          <td>{{ scan.issue or '—' }}{% if scan.issue or scan.edition %} · {% endif %}{{ scan.edition or '—' }}</td>
+          <td>{{ scan.pages_text or '—' }}</td>
+          <td>{% if scan.image_url %}<a href="{{ scan.image_url }}" target="_blank" rel="noopener">图片 ↗</a>{% else %}无{% endif %}</td>
+          <td class="muted">{{ scan.reason }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if report.failures %}
+<section class="section">
+  <div class="section-heading">
+    <h2>抓取失败</h2>
+    <p>任一详情或目录分页抓取失败都会让整期进入“待核实”，不能判为合格。</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>阶段</th><th>URL</th><th>错误</th></tr></thead>
+      <tbody>
+      {% for failure in report.failures %}
+        <tr>
+          <td><span class="chip chip-bad">{{ failure.stage }}</span></td>
+          <td class="url-text">{{ failure.url }}</td>
+          <td class="muted">{{ failure.message }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="section-heading">
+    <h2>读取过的目录分页</h2>
+    <p>仅在详情链接所在的同站目录分页内继续跟进。</p>
+  </div>
+  <ol class="url-list">
+    {% for url in report.directory_pages %}<li class="url-text">{{ url }}</li>{% endfor %}
+  </ol>
+</section>
+
+<div class="report-actions">
+  <a class="primary-link" href="/">验收另一期</a>
+</div>
+{% endblock %}

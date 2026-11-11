@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}报纸扫描验收台{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark">验</span>
+        <span>报纸扫描验收台</span>
+      </a>
+      <span class="topbar-note">漏扫 · 重扫 · 待核实</span>
+    </div>
+  </header>
+  <main class="wrap main">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="wrap footer">
+    目录分页读取 · 期版一致性校验 · 逐页覆盖判定
+  </footer>
+</body>
+</html>

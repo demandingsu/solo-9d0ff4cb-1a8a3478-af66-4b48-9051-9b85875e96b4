@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}目录无法读取 · 报纸扫描验收台{% endblock %}
+
+{% block content %}
+<section class="report-head">
+  <div>
+    <p class="eyebrow">无法开始验收</p>
+    <h1>目录无法读取</h1>
+    <p class="muted">目录：<span class="url-text">{{ url }}</span></p>
+  </div>
+  <span class="badge badge-pending big">待核实</span>
+</section>
+
+<div class="alert alert-pending">
+  <strong>目录读取失败：</strong>{{ message }}
+  <span class="alert-tail">没有读到目录就无法确定期号、总页数和扫描清单，因此不能给出合格结论。</span>
+</div>
+
+<div class="report-actions">
+  <a class="primary-link" href="/">返回重新输入</a>
+</div>
+{% endblock %}
